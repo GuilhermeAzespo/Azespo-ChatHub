@@ -1,4 +1,4 @@
-import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@whiskeysockets/baileys';
+import makeWASocket, { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import path from 'path';
 import fs from 'fs';
@@ -25,11 +25,14 @@ class WhatsAppService {
         }
 
         const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+        const { version } = await fetchLatestBaileysVersion();
 
         const sock = makeWASocket({
+            version,
             auth: state,
             printQRInTerminal: false,
-            browser: ['Azespo ChatHub', 'Chrome', '1.0.0'],
+            browser: Browsers.macOS('Desktop'),
+            syncFullHistory: false
         });
 
         sock.ev.on('creds.update', saveCreds);
