@@ -15,38 +15,75 @@ Idealizado para substituir dependências de ferramentas externas (como a Evoluti
 
 ---
 
-## 📦 Como fazer o Deploy no Easypanel
+## 📦 Guia Definitivo: Como fazer o Deploy no Easypanel (Passo a Passo)
 
-A aplicação já possui um `Dockerfile` configurado para compilar tanto o Backend quanto o Frontend e rodar os dois de forma eficiente. Siga os passos abaixo para fazer o deploy no **Easypanel**:
+Este guia foi feito para "pegar na sua mão". Siga cada clique com atenção para colocar o Azespo-ChatHub no ar!
 
-### Passo 1: Criar o Banco de Dados
-1. Acesse o seu projeto no Easypanel.
-2. Crie um novo serviço do tipo **PostgreSQL**.
-3. Após criar, vá na aba de conexão do serviço e copie a URL do banco (algo como `postgresql://postgres:senha@nome-do-banco:5432/postgres`).
+### Passo 1: Criando o Banco de Dados (PostgreSQL)
+A primeira coisa que precisamos é de um lugar seguro para salvar nossas configurações (como o nome das instâncias e as chaves de API). 
 
-### Passo 2: Criar a Aplicação
-1. No Easypanel, crie um novo serviço do tipo **App** (ou aponte diretamente como GitHub, caso tenha integrado o Easypanel com sua conta).
-2. Se usar a integração do GitHub, conecte este repositório (`GuilhermeAzespo/Azespo-ChatHub`). Se usar manual, aponte a fonte para a imagem Docker deste repositório.
+1. Abra o painel do seu **Easypanel** no navegador e acesse o seu **Project** (Projeto).
+2. Clique no botão azul **"New Service"** (Novo Serviço) no canto superior direito.
+3. Vai abrir uma tela com várias opções de aplicativos. Role a página até a seção de *Databases* e clique em **PostgreSQL**.
+4. No campo **"Service Name"**, digite um nome fácil, como `chathub-db`. O Password (Senha) já virá preenchido com algo aleatório e seguro, você não precisa mexer.
+5. Clique no botão azul **"Create"**.
+6. Aguarde alguns segundos. O serviço será criado e a tela dele vai abrir.
+7. Na página do banco que acabou de abrir, procure pelo campo chamado **"Connection URL"** (ou URL de Conexão). 
+8. Copie essa URL inteira! Ela começa com `postgresql://`. Cole-a num bloco de notas, pois vamos precisar dela logo mais.
 
-### Passo 3: Configurar Variáveis de Ambiente (Environment)
-Dentro da aba **Environment** da sua nova App, adicione as seguintes variáveis:
+### Passo 2: Criando a Aplicação do ChatHub
+Agora vamos puxar o nosso código do GitHub para dentro do Easypanel.
 
-```env
-DATABASE_URL="coloque-a-url-do-postgres-copiada-aqui"
-PORT="3000"
-```
+1. Volte para a página principal do seu **Project** no Easypanel.
+2. Clique novamente em **"New Service"** (Novo Serviço).
+3. Na primeira fileira do topo, clique na opção **"App"** (ou "GitHub", se o seu Easypanel for mais antigo).
+4. No campo **"Service Name"**, digite `azespo-chathub`.
+5. Clique em **"Create"**.
+6. O Easypanel abrirá a aba **"Source"** (Fonte) da sua nova aplicação. 
+7. Encontre a seção **"Github"** (ou Git).
+8. No campo de repositório, digite exatamente isso: `GuilhermeAzespo/Azespo-ChatHub`. No campo branch, digite `main`.
+9. **Importante:** Se o seu repositório for privado, não esqueça de colocar um Token de acesso ou vincular sua conta do GitHub nas configurações do Easypanel.
+10. Clique no botão **"Save"** (Salvar) na aba Source.
 
-### Passo 4: Configurar Volumes Persistentes (Extremamente Importante)
-A biblioteca do WhatsApp armazena os "tokens de sessão" dos celulares conectados. Se você não configurar um volume, toda vez que fizer um novo deploy ou a aplicação reiniciar, todos os números serão desconectados.
+### Passo 3: Configurando o Banco na Aplicação (Variáveis de Ambiente)
+O nosso sistema precisa saber com qual banco de dados ele vai conversar. Vamos contar isso para ele.
 
-1. Vá na aba **Storage/Volumes** da sua App no Easypanel.
-2. Crie um **Volume Mount** (Mount path) apontando para a pasta: `/app/sessions`
-3. Dessa forma, as conexões ficam salvas de forma persistente.
+1. Na mesma tela da aplicação `azespo-chathub`, olhe o menu no topo e clique na aba **"Environment"** (Ambiente).
+2. Você verá uma caixa de texto preta (editor de código). Apague tudo o que tiver nela e cole as duas linhas abaixo:
+   ```env
+   DATABASE_URL="coloque-aqui-a-url-do-banco-que-voce-copiou-no-bloco-de-notas"
+   PORT="3000"
+   ```
+3. Substitua o texto entre aspas do `DATABASE_URL` pela URL real que você copiou no Passo 1. Vai ficar algo como: `DATABASE_URL="postgresql://postgres:suasenha@chathub-db:5432/postgres"`
+4. Clique no botão azul **"Save"** no final da tela.
 
-### Passo 5: Fazer o Deploy
-1. Clique no botão **Deploy**! 
-2. O servidor cuidará de compilar o Node e o React e subir o sistema. O nosso Dockerfile também está configurado para executar `npx prisma db push` automaticamente, ou seja, suas tabelas no banco de dados serão criadas sozinhas na primeira execução.
-3. Configure o **Domain** dentro do Easypanel para acessar o painel pelo seu navegador (ex: `chathub.azespo.com.br`).
+### Passo 4: O Segredo de Ouro (Volumes Persistentes)
+**PRESTE MUITA ATENÇÃO AQUI!** Se você pular este passo, todos os seus WhatsApps vão desconectar sozinhos toda vez que o Easypanel reiniciar! Isso acontece porque a biblioteca de mensagens salva os "tokens" do celular em uma pastinha, e o Docker apaga pastas quando reinicia.
+
+1. No menu superior da aplicação `azespo-chathub`, clique na aba **"Storage"** ou **"Volumes"**.
+2. Na seção chamada **"Mounts"** ou **"Volume Mounts"**, clique no botão para adicionar um novo volume.
+3. Vai aparecer um campo chamado **"Mount Path"** (Caminho da Montagem). Digite EXATAMENTE isso: `/app/sessions`
+4. O campo "Volume Name" (Nome do volume) pode deixar o que ele gerar sozinho (ou digite `chathub-sessions`).
+5. Clique em **"Save"**. Pronto! O Easypanel agora sabe que a pasta `/app/sessions` nunca deve ser apagada.
+
+### Passo 5: Configurando o Domínio (URL)
+Vamos dar um link bonitinho para você acessar o painel.
+
+1. No menu superior da aplicação, clique na aba **"Domains"** (Domínios).
+2. No campo **Host**, digite o endereço que você deseja. Exemplo: `chathub.azespo.com.br`
+3. No campo **Port** (Porta Externa/Interna), digite `3000` (que é a porta que nosso painel usa).
+4. Deixe marcada a opção de gerar certificado SSL (HTTPS) automático.
+5. Clique em **"Add Domain"**.
+*(Lembre-se de ir no site onde você comprou o domínio, como a Hostinger, e criar um apontamento DNS tipo 'A' ou 'CNAME' apontando o `chathub` para o IP do servidor do Easypanel).*
+
+### Passo 6: Lançar o Foguete! (Fazer o Deploy)
+Tudo configurado! Vamos colocar no ar.
+
+1. No canto superior direito da tela do Easypanel, vai ter um botão enorme escrito **"Deploy"**. Clique nele!
+2. O Easypanel vai começar a baixar o nosso código do GitHub, instalar o Node.js, e fazer tudo que configuramos no nosso `Dockerfile`.
+3. Isso vai demorar alguns bons minutos na primeira vez. Você pode clicar em **"Deployments"** ou **"Logs"** para ver a mágica acontecendo como um "hacker" vendo textos passando na tela.
+4. Quando ficar verdinho e disser "Success", pronto! O sistema já rodou o comando automático (`npx prisma db push`) para criar as tabelas no PostgreSQL.
+5. Acesse a URL que você configurou (ex: `https://chathub.azespo.com.br`) e aproveite o seu novo sistema Azespo-ChatHub!
 
 ---
 
