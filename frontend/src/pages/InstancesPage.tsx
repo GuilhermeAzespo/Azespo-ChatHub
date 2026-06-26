@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, QrCode, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Trash2, QrCode, RefreshCw, CheckCircle2, XCircle, Send } from 'lucide-react';
 
 export default function InstancesPage() {
   const [instances, setInstances] = useState<any[]>([]);
@@ -10,6 +10,9 @@ export default function InstancesPage() {
   const [qrModal, setQrModal] = useState<{ open: boolean; base64: string | null; instance: string }>({
     open: false, base64: null, instance: ''
   });
+  const [testModal, setTestModal] = useState<{ open: boolean; instance: string }>({ open: false, instance: '' });
+  const [testForm, setTestForm] = useState({ number: '', text: '' });
+  const [isTesting, setIsTesting] = useState(false);
 
   const api = axios.create({ baseURL: '/api' });
 
@@ -63,6 +66,24 @@ export default function InstancesPage() {
     } catch (e) {
       alert('QR Code indisponível.');
       setQrModal({ open: false, base64: null, instance: '' });
+    }
+  };
+
+  const handleTestSend = async () => {
+    if (!testForm.number || !testForm.text) {
+      alert('Preencha o número e a mensagem.');
+      return;
+    }
+    setIsTesting(true);
+    try {
+      await api.post(`/message/sendText/${testModal.instance}`, testForm);
+      alert('Mensagem enviada com sucesso!');
+      setTestModal({ open: false, instance: '' });
+      setTestForm({ number: '', text: '' });
+    } catch (e: any) {
+      alert('Erro ao enviar mensagem: ' + (e.response?.data?.error || e.message));
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -130,6 +151,15 @@ export default function InstancesPage() {
                 <QrCode size={18} />
                 QR Code
               </button>
+              
+              <button
+                onClick={() => setTestModal({ open: true, instance: inst.name })}
+                disabled={inst.connectionStatus !== 'open'}
+                className="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:bg-slate-800 disabled:text-slate-500"
+              >
+                <Send size={18} />
+                Testar
+              </button>
             </div>
           </div>
         ))}
@@ -159,6 +189,53 @@ export default function InstancesPage() {
             <p className="text-center text-sm text-slate-400 mt-4">
               Abra o WhatsApp no seu celular e escaneie o código acima.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Test Message Modal */}
+      {testModal.open && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-card border border-slate-700 rounded-2xl p-8 max-w-md w-full relative">
+            <button 
+              onClick={() => setTestModal({ open: false, instance: '' })}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <XCircle size={24} />
+            </button>
+            <h3 className="text-xl font-bold text-white mb-2">Testar Disparo</h3>
+            <p className="text-slate-400 text-sm mb-6">Envie uma mensagem pela instância <b>{testModal.instance}</b>.</p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Número (com DDD)</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 5511999999999"
+                  value={testForm.number}
+                  onChange={(e) => setTestForm({ ...testForm, number: e.target.value })}
+                  className="w-full bg-dark border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Mensagem</label>
+                <textarea
+                  placeholder="Sua mensagem de teste..."
+                  rows={4}
+                  value={testForm.text}
+                  onChange={(e) => setTestForm({ ...testForm, text: e.target.value })}
+                  className="w-full bg-dark border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-primary resize-none"
+                />
+              </div>
+              <button
+                onClick={handleTestSend}
+                disabled={isTesting || !testForm.number || !testForm.text}
+                className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              >
+                {isTesting ? <RefreshCw className="animate-spin" size={18} /> : <Send size={18} />}
+                Enviar Mensagem
+              </button>
+            </div>
           </div>
         </div>
       )}
