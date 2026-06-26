@@ -8,7 +8,7 @@ export default function ApiKeysPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const api = axios.create({ baseURL: 'http://localhost:3000/api' });
+  const api = axios.create({ baseURL: '/api' });
 
   const fetchKeys = async () => {
     try {

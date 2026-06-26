@@ -11,7 +11,7 @@ export default function InstancesPage() {
     open: false, base64: null, instance: ''
   });
 
-  const api = axios.create({ baseURL: 'http://localhost:3000/api' });
+  const api = axios.create({ baseURL: '/api' });
 
   const fetchInstances = async () => {
     try {

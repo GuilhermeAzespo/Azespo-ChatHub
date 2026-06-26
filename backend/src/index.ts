@@ -11,10 +11,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/', router);
+import path from 'path';
 
-app.get('/health', (req, res) => {
+app.use('/api', router);
+
+// Serve Static Frontend (React)
+const frontendPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
+app.use(express.static(frontendPath));
+
+app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', service: 'Azespo-ChatHub' });
+});
+
+// Any other route falls back to React index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // Inicializa o serviço do WhatsApp (reconecta instâncias existentes)
