@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Instance {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  token           String   @unique @default(uuid())
+  status          String   @default("DISCONNECTED") // CONNECTED, DISCONNECTED, CONNECTING
+  number          String?  
+  profileName     String?
+  profilePicUrl   String?
+  webhookUrl      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model GlobalApiKey {
+  id        String   @id @default(uuid())
+  name      String
+  key       String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuthUser {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
