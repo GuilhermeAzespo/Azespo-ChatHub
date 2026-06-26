@@ -6,7 +6,8 @@ const prisma = new PrismaClient();
 
 export const sendText = async (req: Request, res: Response) => {
     try {
-        const { instanceName } = req.params;
+        let { instanceName } = req.params;
+        instanceName = instanceName.trim();
         const { number, text } = req.body;
 
         if (!number || !text) {

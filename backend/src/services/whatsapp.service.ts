@@ -9,6 +9,18 @@ class WhatsAppService {
 
     async init() {
         console.log('WhatsApp Service Init');
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient();
+        
+        try {
+            const instances = await prisma.instance.findMany();
+            for (const inst of instances) {
+                console.log(`[Init] Reconnecting instance: ${inst.name}`);
+                await this.connect(inst.name);
+            }
+        } catch (e) {
+            console.error('Error during init reconnections', e);
+        }
     }
 
     async createInstance(instanceName: string) {
