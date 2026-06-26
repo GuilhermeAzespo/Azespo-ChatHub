@@ -80,10 +80,44 @@ class WhatsAppService {
 
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
             if (type === 'notify') {
+                const { PrismaClient } = await import('@prisma/client');
+                const prisma = new PrismaClient();
+                const dbInstance = await prisma.instance.findUnique({ where: { name: instanceName } });
+
                 for (const msg of messages) {
                     if (!msg.key.fromMe) {
                         const { webhookService } = await import('./webhook.service');
                         webhookService.dispatch(instanceName, 'messages.upsert', msg);
+                    }
+
+                    if (dbInstance) {
+                        const remoteJid = msg.key.remoteJid;
+                        if (!remoteJid || remoteJid === 'status@broadcast') continue;
+
+                        const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || null;
+                        if (!text) continue;
+
+                        try {
+                            const contact = await prisma.contact.upsert({
+                                where: { instanceId_remoteJid: { instanceId: dbInstance.id, remoteJid } },
+                                update: { pushName: msg.pushName || undefined },
+                                create: { instanceId: dbInstance.id, remoteJid, pushName: msg.pushName }
+                            });
+
+                            await prisma.message.upsert({
+                                where: { contactId_messageId: { contactId: contact.id, messageId: msg.key.id! } },
+                                update: {},
+                                create: {
+                                    contactId: contact.id,
+                                    messageId: msg.key.id!,
+                                    fromMe: msg.key.fromMe || false,
+                                    text,
+                                    timestamp: new Date(Number(msg.messageTimestamp) * 1000)
+                                }
+                            });
+                        } catch (e) {
+                            console.error('Error saving message to DB', e);
+                        }
                     }
                 }
             }

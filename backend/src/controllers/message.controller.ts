@@ -31,6 +31,29 @@ export const sendText = async (req: Request, res: Response) => {
         await session.sock.sendPresenceUpdate('paused', formattedNumber);
         const result = await session.sock.sendMessage(formattedNumber, { text });
 
+        try {
+            const dbInstance = await prisma.instance.findUnique({ where: { name: instanceName } });
+            if (dbInstance && result?.key?.id) {
+                const contact = await prisma.contact.upsert({
+                    where: { instanceId_remoteJid: { instanceId: dbInstance.id, remoteJid: formattedNumber } },
+                    update: {},
+                    create: { instanceId: dbInstance.id, remoteJid: formattedNumber }
+                });
+
+                await prisma.message.create({
+                    data: {
+                        contactId: contact.id,
+                        messageId: result.key.id,
+                        fromMe: true,
+                        text,
+                        timestamp: new Date()
+                    }
+                });
+            }
+        } catch (dbErr) {
+            console.error('Erro ao salvar mensagem enviada no BD', dbErr);
+        }
+
         res.json({ status: 'SUCCESS', message: 'Mensagem enviada', data: result });
     } catch (e: any) {
         res.status(500).json({ error: e.message });

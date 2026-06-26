@@ -1,11 +1,12 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Smartphone, Key, LayoutDashboard, Settings } from 'lucide-react';
+import { Smartphone, Key, LayoutDashboard, Settings, MessageSquare } from 'lucide-react';
 
 export default function DashboardLayout() {
   const location = useLocation();
 
   const menu = [
     { name: 'Instâncias', path: '/instances', icon: <Smartphone size={20} /> },
+    { name: 'Conversas', path: '/chats', icon: <MessageSquare size={20} /> },
     { name: 'API Keys', path: '/apikeys', icon: <Key size={20} /> },
   ];
 
