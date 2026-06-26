@@ -63,6 +63,17 @@ class WhatsAppService {
             }
         });
 
+        sock.ev.on('messages.upsert', async ({ messages, type }) => {
+            if (type === 'notify') {
+                for (const msg of messages) {
+                    if (!msg.key.fromMe) {
+                        const { webhookService } = await import('./webhook.service');
+                        webhookService.dispatch(instanceName, 'messages.upsert', msg);
+                    }
+                }
+            }
+        });
+
         this.sessions.set(instanceName, { sock, status: 'connecting', qr: null });
         return { status: 'success', message: 'Instância iniciada' };
     }

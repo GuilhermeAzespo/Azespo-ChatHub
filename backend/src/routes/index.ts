@@ -2,7 +2,14 @@ import { Router } from 'express';
 import { createInstance, fetchInstances, deleteInstance, getQrCode, connectionState } from '../controllers/instance.controller';
 import { sendText } from '../controllers/message.controller';
 
+import { createGlobalApiKey, listGlobalApiKeys, deleteGlobalApiKey } from '../controllers/auth.controller';
+
 const router = Router();
+
+// Auth Routes
+router.post('/auth/apikey/create', createGlobalApiKey);
+router.get('/auth/apikey/list', listGlobalApiKeys);
+router.delete('/auth/apikey/delete/:id', deleteGlobalApiKey);
 
 // Instance Routes
 router.post('/instance/create', createInstance);
