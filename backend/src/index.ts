@@ -3,11 +3,15 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { whatsappService } from './services/whatsapp.service';
 
+import router from './routes';
+
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.use('/', router);
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'Azespo-ChatHub' });

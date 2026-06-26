@@ -2,12 +2,12 @@ import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@whiskeys
 import { Boom } from '@hapi/boom';
 import path from 'path';
 import fs from 'fs';
+import * as QRCode from 'qrcode';
 
 class WhatsAppService {
     private sessions: Map<string, any> = new Map();
 
     async init() {
-        // Inicializa instâncias salvas no banco futuramente
         console.log('WhatsApp Service Init');
     }
 
@@ -15,12 +15,11 @@ class WhatsAppService {
         if (this.sessions.has(instanceName)) {
             return { status: 'error', message: 'Instância já existe' };
         }
-
         return await this.connect(instanceName);
     }
 
     private async connect(instanceName: string) {
-        const sessionPath = path.join(__dirname, '..', '..', 'sessions', instanceName);
+        const sessionPath = path.join(__dirname, '..', '..', '..', 'sessions', instanceName);
         if (!fs.existsSync(sessionPath)) {
             fs.mkdirSync(sessionPath, { recursive: true });
         }
@@ -35,29 +34,29 @@ class WhatsAppService {
 
         sock.ev.on('creds.update', saveCreds);
 
-        sock.ev.on('connection.update', (update) => {
+        sock.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update;
 
             if (qr) {
                 console.log(`[${instanceName}] QR Code recebido`);
-                // Armazenar QR para ser lido pela API
-                this.sessions.set(instanceName, { ...this.sessions.get(instanceName), qr });
+                try {
+                    const base64Qr = await QRCode.toDataURL(qr);
+                    this.sessions.set(instanceName, { ...this.sessions.get(instanceName), qr: base64Qr });
+                } catch(e) { console.error('Erro ao gerar QR Base64', e); }
             }
 
             if (connection === 'close') {
                 const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
-                console.log(`[${instanceName}] connection closed due to `, lastDisconnect?.error, ', reconnecting ', shouldReconnect);
                 if (shouldReconnect) {
                     this.connect(instanceName);
                 } else {
-                    // Remover diretório de sessão se deslogado
                     fs.rmSync(sessionPath, { recursive: true, force: true });
                     this.sessions.delete(instanceName);
                 }
             } else if (connection === 'open') {
                 console.log(`[${instanceName}] opened connection`);
                 const sessionData = this.sessions.get(instanceName) || {};
-                sessionData.qr = null; // limpa qr code
+                sessionData.qr = null;
                 sessionData.sock = sock;
                 sessionData.status = 'open';
                 this.sessions.set(instanceName, sessionData);
@@ -71,10 +70,19 @@ class WhatsAppService {
     async getStatus(instanceName: string) {
         const session = this.sessions.get(instanceName);
         if (!session) return { status: 'NOT_FOUND' };
-        return {
-            status: session.status,
-            qr: session.qr
-        };
+        return { status: session.status, qr: session.qr };
+    }
+
+    async deleteInstance(instanceName: string) {
+        const session = this.sessions.get(instanceName);
+        if (session && session.sock) {
+            session.sock.logout().catch(() => {});
+        }
+        this.sessions.delete(instanceName);
+        const sessionPath = path.join(__dirname, '..', '..', '..', 'sessions', instanceName);
+        if (fs.existsSync(sessionPath)) {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+        }
     }
 }
 
