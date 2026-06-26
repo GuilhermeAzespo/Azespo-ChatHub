@@ -1,28 +1,28 @@
 # Build Frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:20-slim AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN apk add --no-cache git
+RUN apt-get update && apt-get install -y git
 RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
 # Build Backend
-FROM node:20-alpine AS backend-builder
+FROM node:20-slim AS backend-builder
 WORKDIR /app/backend
 COPY backend/package*.json ./
-RUN apk add --no-cache git openssl
+RUN apt-get update && apt-get install -y git openssl
 RUN npm install
 COPY backend/ ./
 RUN npx prisma generate
 RUN npm run build
 
 # Production Image
-FROM node:20-alpine
+FROM node:20-slim
 WORKDIR /app
 
 # Instalar dependências de sistema (chromium pro baileys, openssl pro prisma)
-RUN apk add --no-cache tzdata chromium openssl
+RUN apt-get update && apt-get install -y chromium openssl procps && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV PORT=3000
