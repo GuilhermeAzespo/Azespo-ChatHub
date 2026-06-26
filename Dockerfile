@@ -11,7 +11,7 @@ RUN npm run build
 FROM node:20-alpine AS backend-builder
 WORKDIR /app/backend
 COPY backend/package*.json ./
-RUN apk add --no-cache git
+RUN apk add --no-cache git openssl
 RUN npm install
 COPY backend/ ./
 RUN npx prisma generate
@@ -21,8 +21,8 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 
-# Instalar Chromium (Necessário para o Baileys/Puppeteer interno gerar QR corretamente se precisar) e tzdata
-RUN apk add --no-cache tzdata chromium
+# Instalar dependências de sistema (chromium pro baileys, openssl pro prisma)
+RUN apk add --no-cache tzdata chromium openssl
 
 ENV NODE_ENV=production
 ENV PORT=3000
